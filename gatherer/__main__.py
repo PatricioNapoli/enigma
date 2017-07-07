@@ -1,5 +1,6 @@
 import sys
 from gatherer import gatherers
+from termcolor import colored
 
 
 EPOCH_DEFAULT = 1451692800
@@ -25,6 +26,8 @@ def get_step():
 
 
 def gather():
+    print_signature()
+
     if sys.argv[1] == "-f":
         gatherer = gatherers.FullGatherer(get_since(), False, 0)
         gatherer.gather()
@@ -55,9 +58,23 @@ def usage():
     print("<step> default: 60")
 
 
+def print_signature():
+    print()
+    print(colored("?)^!(#^!@#&<!>#^<~^#$!$}&|*(_+#)!$%_^!&?", "red"))
+    print(colored("   ___  , __   `   ___. , _ , _     ___ ", "blue"))
+    print(colored(" .'   ` |'  `. | .'   ` |' `|' `.  /   `", "blue"))
+    print(colored(" |----' |    | | |    | |   |   | |    |", "blue"))
+    print(colored(" `.___, /    | /  `---| /   '   / `.__/|", "blue"))
+    print(colored("                  \___/                 ", "blue"))
+    print(colored("?~#^?{}:$&~@#%<@~#&>~#<%_@#)^$&~$^&}{&!?", "red"))
+    print()
+
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         gather()
+
+        print("Done. Happy predicting!")
     else:
         usage()
 

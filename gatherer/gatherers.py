@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import requests
 import time
 import math
+import itertools, sys
 
 EPOCH_DEFAULT = 1451692800
 SECONDS_DEFAULT = 60
@@ -48,10 +49,15 @@ class FullGatherer(Gatherer):
         hours_needed = math.ceil((time.time() - int(self.since)) / 3600)
         print("Downloading " + str(hours_needed) + " hours.")
         print("This may take a while.")
+        print('Downloading.. ', end='', flush=True)
+
+        spinner = Spinner()
 
         for i in range(len(CURRENCIES)):
             hours = hours_needed
             while hours > 0:
+                spinner.spin()
+
                 if hours > API_HISTO_HOUR_LIMIT:
                     h = API_HISTO_HOUR_LIMIT
                 else:
@@ -59,7 +65,7 @@ class FullGatherer(Gatherer):
 
                 r = requests.get(API_HISTO_HOUR_URL + "?fsym=" + CURRENCIES[i] +
                                  "&tsym=" + PHYSICAL_CURRENCY + "&limit=" + str(h) + "&aggregate=1&toTs=" + str(self.since))
-                print(r.json())
+
                 hours -= API_HISTO_HOUR_LIMIT
 
         if self.rtf:
@@ -74,3 +80,13 @@ class RealtimeGatherer(Gatherer):
 
     def gather(self):
         print(get_info() + "With step: " + str(self.step) + " seconds")
+
+
+class Spinner(object):
+    def __init__(self):
+        self.spinner = itertools.cycle(['-', '\\', '|', '/'])
+
+    def spin(self):
+        sys.stdout.write(self.spinner.__next__())
+        sys.stdout.flush()
+        sys.stdout.write('\b')
