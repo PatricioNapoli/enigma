@@ -1,3 +1,4 @@
+import asyncio
 import sys
 from gatherer import gatherers
 from termcolor import colored
@@ -25,24 +26,24 @@ def get_step():
     return step
 
 
-def gather():
+async def gather():
     print_signature()
 
     if sys.argv[1] == "-f":
         gatherer = gatherers.FullGatherer(get_since(), False, 0)
-        gatherer.gather()
+        await gatherer.gather()
     elif sys.argv[1] == "-rt":
         gatherer = gatherers.RealtimeGatherer(get_step())
-        gatherer.gather()
+        await gatherer.gather()
     elif sys.argv[1] == "-rtf":
         gatherer = gatherers.FullGatherer(get_since(), True, get_step())
-        gatherer.gather()
+        await gatherer.gather()
     elif sys.argv[1] == "-s":
         gatherer = gatherers.SyncGatherer(False, 0)
-        gatherer.gather()
+        await gatherer.gather()
     elif sys.argv[1] == "-rts":
         gatherer = gatherers.SyncGatherer(True, get_step())
-        gatherer.gather()
+        await gatherer.gather()
     else:
         usage()
 
@@ -70,11 +71,17 @@ def print_signature():
     print()
 
 
-if __name__ == "__main__":
+@asyncio.coroutine
+def main():
     if len(sys.argv) > 1:
-        gather()
+        yield from gather()
 
         print("Done. Happy predicting!")
     else:
         usage()
+
+
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
 
