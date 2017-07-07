@@ -6,6 +6,7 @@ import itertools
 import sys
 import asyncio
 import asyncpg
+from asyncpg.exceptions import UniqueViolationError
 
 EPOCH_DEFAULT = 1451692800
 SECONDS_DEFAULT = 60
@@ -32,7 +33,10 @@ class Database(object):
         self.insert = await self.connection.prepare('''INSERT INTO ''' + HISTORY_TABLE + ''' VALUES($1, $2, $3, $4, $5, $6)''')
 
     async def upload(self, d, coin_id):
-        await self.insert.fetchval(d["time"], coin_id, d["open"], d["close"], d["high"], d["low"])
+        try:
+            await self.insert.fetchval(d["time"], coin_id, d["open"], d["close"], d["high"], d["low"])
+        except UniqueViolationError:
+            pass
 
     async def close(self):
         await self.connection.close()
@@ -76,14 +80,19 @@ class SyncGatherer(Gatherer):
 class FullGatherer(Gatherer):
     def __init__(self, since, rtf, step):
         Gatherer.__init__(self)
-        self.since = since
+        self.since = int(since)
         self.rtf = rtf
         self.step = step
 
     def gather(self):
+        start_time = time.time()
+
         print(self.get_info() + "Since epoch: " + str(self.since))
-        hours_needed = math.ceil((time.time() - int(self.since)) / 3600)
-        print("Downloading " + str(hours_needed) + " hours.")
+        hours_needed = math.ceil((time.time() - self.since) / 3600)
+
+        print("Downloading " + str(hours_needed) + " hours per currency.")
+        print("API hours per call limit: " + str(API_HISTO_HOUR_LIMIT) +
+              " - API calls needed per currency: " + str(math.ceil(hours_needed / API_HISTO_HOUR_LIMIT)))
         print("This may take a while.")
         print('Downloading.. ', end='', flush=True)
 
@@ -91,6 +100,7 @@ class FullGatherer(Gatherer):
 
         for i in range(len(CURRENCIES)):
             hours = hours_needed
+            api_call_count = 1
             while hours > 0:
                 spinner.spin()
 
@@ -100,11 +110,14 @@ class FullGatherer(Gatherer):
                     h = hours
 
                 r = requests.get(API_HISTO_HOUR_URL + "?fsym=" + CURRENCIES[i] +
-                                 "&tsym=" + PHYSICAL_CURRENCY + "&limit=" + str(h) + "&aggregate=1&toTs=" + str(self.since))
+                                 "&tsym=" + PHYSICAL_CURRENCY + "&limit=" + str(h) + "&aggregate=1&toTs=" + str(self.since + (api_call_count * (h * 3600))))
 
                 self.upload(r.json(), i+1)
 
                 hours -= API_HISTO_HOUR_LIMIT
+                api_call_count += 1
+
+        print("Time taken: " + str(time.time() - start_time) + " seconds.")
 
         if self.rtf:
             print("Switching to realtime gatherer.")
