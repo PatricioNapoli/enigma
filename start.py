@@ -1,11 +1,10 @@
 import asyncio
 import sys
-from gatherer import gatherers
+
 from termcolor import colored
 
-
-EPOCH_DEFAULT = 1451692800
-STEP_DEFAULT = 60
+from config.config import Configuration
+from gatherer import gatherers
 
 
 def get_since():
@@ -13,7 +12,7 @@ def get_since():
         since = sys.argv[2]
     else:
         print("No epoch provided, using default.")
-        since = EPOCH_DEFAULT
+        since = Configuration.config["epoch_default"]
     return since
 
 
@@ -22,12 +21,12 @@ def get_step():
         step = sys.argv[2]
     else:
         print("No step provided, using default.")
-        step = STEP_DEFAULT
+        step = Configuration.config["step_default"]
     return step
 
 
 async def gather():
-    print_signature()
+    Configuration.load()
 
     if sys.argv[1] == "-f":
         gatherer = gatherers.FullGatherer(get_since(), False, 0)
@@ -73,13 +72,21 @@ def print_signature():
 
 @asyncio.coroutine
 def main():
-    if len(sys.argv) > 1:
-        yield from gather()
+    try:
+        print_signature()
 
-        print("Done. Happy predicting!")
-    else:
-        usage()
+        if len(sys.argv) > 1:
+            yield from gather()
 
+            print("Done. Happy predicting!")
+        else:
+            usage()
+    except KeyboardInterrupt:
+        print()
+        print("Enigma aborted. Exiting!")
+    except FileNotFoundError:
+        print()
+        print("Configuration file not found!")
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()

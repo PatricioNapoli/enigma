@@ -6,10 +6,10 @@ Gathers historical or real time price data from a Cryptocurrency database.
 > pip install -r requirements.txt
 
 # Run (Python 3.5+ required)
-- Execute dbmodel.sql file in your PostgreSQL server.
-
+- Execute database/dbmodel.sql file in your PostgreSQL server.
+- Configure config/config.json file
 - Execute the following command
-> python -m gatherer
+> python start.py
 
 # Usage
 - [FULL] `-f EPOCH` to gather currency history from provided epoch to now.

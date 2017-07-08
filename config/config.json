@@ -1,0 +1,29 @@
+{
+  "epoch_default": 1451692800,
+  "step_default": 60,
+  "currencies": [
+    {
+      "id": 1,
+      "coin": "BTC"
+    },
+    {
+      "id": 2,
+      "coin": "ETH"
+    },
+    {
+      "id": 3,
+      "coin": "LTC"
+    }
+  ],
+  "currency_conversion": "USD",
+  "api_histo_hour_limit": 2000,
+  "api_histo_hour_url": "https://min-api.cryptocompare.com/data/histohour",
+  "database": {
+    "host": "localhost",
+    "port": "5432",
+    "database": "genesis",
+    "user": "genesis",
+    "password": "",
+    "history_table": "coins_history"
+  }
+}

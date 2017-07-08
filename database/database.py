@@ -1,7 +1,6 @@
 import asyncpg
 
-
-HISTORY_TABLE = "coins_history"
+from config.config import Configuration
 
 
 class Database(object):
@@ -15,7 +14,7 @@ class Database(object):
     async def open(self):
         self.connection = await asyncpg.connect(host=self.host, port=self.port,
                                                 database=self.database, user=self.user, password=self.password)
-        self.insert = await self.connection.prepare('''INSERT INTO ''' + HISTORY_TABLE + ''' VALUES($1, $2, $3, $4, $5, $6)''')
+        self.insert = await self.connection.prepare('''INSERT INTO ''' + Configuration.config["database"]["history_table"] + ''' VALUES($1, $2, $3, $4, $5, $6)''')
 
     async def upload(self, series, coin_id):
         for d in series['Data']:
