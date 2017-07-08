@@ -1,3 +1,4 @@
+import asyncio
 import asyncpg
 
 from config.config import Configuration
@@ -12,16 +13,18 @@ class Database(object):
         self.password = password
 
     async def open(self):
-        self.connection = await asyncpg.connect(host=self.host, port=self.port,
-                                                database=self.database, user=self.user, password=self.password)
-        self.insert = await self.connection.prepare('''INSERT INTO ''' + Configuration.config["database"]["history_table"] + ''' VALUES($1, $2, $3, $4, $5, $6)''')
+        self.pool = await asyncpg.create_pool(host=self.host, port=self.port,
+                                              database=self.database, user=self.user, password=self.password)
 
-    async def upload(self, series, coin_id):
-        for d in series['Data']:
+    def upload(self, series, coin_id):
+        with self.pool.acquire() as connection:
+            statements = ""
+            del series['Data'][0]  # Erase first to prevent inserting an existing key, ruining the batch insert
+            for d in series['Data']:
+                v = str.format("{},{},{},{},{},{}", d["time"], coin_id, d["open"], d["close"], d["high"], d["low"])
+                statements += '''INSERT INTO ''' + Configuration.config["database"]["history_table"] + ''' VALUES('''+v+''');'''
             try:
-                await self.insert.fetchval(d["time"], coin_id, d["open"], d["close"], d["high"], d["low"])
-            except asyncpg.UniqueViolationError:
+                asyncio.get_event_loop().run_until_complete(connection.execute(statements))  # This is non-blocking, don't worry.
+            except asyncpg.UniqueViolationError as e:
+                print(e.args)
                 pass
-
-    async def close(self):
-        await self.connection.close()

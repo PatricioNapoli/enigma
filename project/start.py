@@ -3,7 +3,6 @@ import sys
 
 from config.config import Configuration
 from termcolor import colored
-
 from gatherer import gatherers
 
 
@@ -72,23 +71,23 @@ def print_signature():
 
 @asyncio.coroutine
 def main():
+    print_signature()
+
+    if len(sys.argv) > 1:
+        yield from gather()
+
+        print("Done. Happy predicting!")
+    else:
+        usage()
+
+
+if __name__ == "__main__":
     try:
-        print_signature()
-
-        if len(sys.argv) > 1:
-            yield from gather()
-
-            print("Done. Happy predicting!")
-        else:
-            usage()
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())
     except KeyboardInterrupt:
         print()
         print("Enigma aborted. Exiting!")
     except FileNotFoundError:
         print()
         print("Configuration file not found!")
-
-if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
-

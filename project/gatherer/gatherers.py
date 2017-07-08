@@ -1,12 +1,12 @@
 import asyncio
+import concurrent.futures
 import math
 import time
-from abc import ABC, abstractmethod
-
 import requests
+
+from abc import ABC, abstractmethod
 from config.config import Configuration
 from spinner.spinner import Spinner
-
 from database.database import Database
 
 
@@ -32,9 +32,6 @@ class Gatherer(ABC):
         return "Gathering for currencies: " + str(self.currencies) + \
                " - Physical currency: " + self.currency_conversion + " - "
 
-    async def upload(self, series, coin_id):
-        await self.database.upload(series, coin_id)
-
 
 class SyncGatherer(Gatherer):
     def __init__(self, rts, step):
@@ -57,7 +54,7 @@ class FullGatherer(Gatherer):
         self.since = int(since)
         self.rtf = rtf
         self.step = step
-        self.hours_needed = math.ceil((time.time() - self.since) / 3600)
+        self.hours_needed = math.ceil(((time.time() - 3600) - self.since) / 3600)
         self.spinner = Spinner()
 
     async def gather(self):
@@ -84,26 +81,46 @@ class FullGatherer(Gatherer):
             rg.gather()
 
     async def start_parallel_gathering(self):
-        for i in range(len(self.currencies)):
-            hours_left = self.hours_needed
-            last_since = self.since + self.api_histo_hour_limit * 3600
-            while hours_left > 0:
-                self.spinner.spin()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            loop = asyncio.get_event_loop()
+            futures = [
+                loop.run_in_executor(
+                    executor,
+                    self.get_currency_data_worker,
+                    i
+                )
+                for i in range(len(self.currencies))
+            ]
+            for response in await asyncio.gather(*futures):
+                pass
 
-                if hours_left > self.api_histo_hour_limit:
-                    h = self.api_histo_hour_limit
-                else:
-                    h = hours_left
+    def get_currency_data_worker(self, i):
+        hours_left = self.hours_needed
+        last_since = self.since + self.api_histo_hour_limit * 3600
+        while hours_left > 0:
+            self.spinner.spin()
 
-                r = requests.get(self.api_histo_hour_url + "?fsym=" + self.currencies[i]["coin"] +
-                                 "&tsym=" + self.currency_conversion +
-                                 "&limit=" + str(h) +
-                                 "&aggregate=1&toTs=" + str(last_since))
+            if hours_left > self.api_histo_hour_limit:
+                h = self.api_histo_hour_limit
+            else:
+                h = hours_left
 
-                await self.upload(r.json(), i + 1)
+            r = requests.get(self.api_histo_hour_url + "?fsym=" + self.currencies[i]["coin"] +
+                             "&tsym=" + self.currency_conversion +
+                             "&limit=" + str(h) +
+                             "&aggregate=1&toTs=" + str(last_since))
 
-                hours_left -= self.api_histo_hour_limit
-                last_since += h * 3600
+            with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+                loop = asyncio.new_event_loop()  # Create event loop, we are outside main loop.
+                loop.run_in_executor(
+                    executor,
+                    self.database.upload,
+                    r.json(),
+                    self.currencies[i]["id"]
+                )
+
+            hours_left -= self.api_histo_hour_limit
+            last_since += h * 3600
 
 
 class RealtimeGatherer(Gatherer):
