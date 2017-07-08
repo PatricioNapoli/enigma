@@ -4,10 +4,10 @@ import time
 from abc import ABC, abstractmethod
 
 import requests
-
 from config.config import Configuration
-from database.database import Database
 from spinner.spinner import Spinner
+
+from database.database import Database
 
 
 class Gatherer(ABC):
@@ -25,7 +25,7 @@ class Gatherer(ABC):
         self.loop = asyncio.get_event_loop()
 
     @abstractmethod
-    def gather(self):
+    async def gather(self):
         pass
 
     def get_info(self):
@@ -57,32 +57,43 @@ class FullGatherer(Gatherer):
         self.since = int(since)
         self.rtf = rtf
         self.step = step
+        self.hours_needed = math.ceil((time.time() - self.since) / 3600)
         self.spinner = Spinner()
 
     async def gather(self):
         start_time = time.time()
 
         print(self.get_info() + "Since epoch: " + str(self.since))
-        hours_needed = math.ceil((time.time() - self.since) / 3600)
-
-        print("Downloading " + str(hours_needed) + " hours per currency.")
+        print("Downloading " + str(self.hours_needed) + " hours per currency.")
         print("API hours per call limit: " + str(self.api_histo_hour_limit) +
-              " - API calls needed per currency: " + str(math.ceil(hours_needed / self.api_histo_hour_limit)))
+              " - API calls needed per currency: " + str(math.ceil(self.hours_needed / self.api_histo_hour_limit)))
         print("This may take a while.")
-        print('Downloading.. ', end='', flush=True)
 
+        print("Connecting to database for data enveloping.")
         await self.database.open()
 
+        print('Downloading.. ', end='', flush=True)
+
+        await self.start_parallel_gathering()
+
+        print("Time taken: " + str(time.time() - start_time) + " seconds.")
+
+        if self.rtf:
+            print("Switching to realtime gatherer.")
+            rg = RealtimeGatherer(self.step)
+            rg.gather()
+
+    async def start_parallel_gathering(self):
         for i in range(len(self.currencies)):
-            hours = hours_needed
+            hours_left = self.hours_needed
             last_since = self.since + self.api_histo_hour_limit * 3600
-            while hours > 0:
+            while hours_left > 0:
                 self.spinner.spin()
 
-                if hours > self.api_histo_hour_limit:
+                if hours_left > self.api_histo_hour_limit:
                     h = self.api_histo_hour_limit
                 else:
-                    h = hours
+                    h = hours_left
 
                 r = requests.get(self.api_histo_hour_url + "?fsym=" + self.currencies[i]["coin"] +
                                  "&tsym=" + self.currency_conversion +
@@ -91,15 +102,8 @@ class FullGatherer(Gatherer):
 
                 await self.upload(r.json(), i + 1)
 
-                hours -= self.api_histo_hour_limit
+                hours_left -= self.api_histo_hour_limit
                 last_since += h * 3600
-
-        print("Time taken: " + str(time.time() - start_time) + " seconds.")
-
-        if self.rtf:
-            print("Switching to realtime gatherer.")
-            rg = RealtimeGatherer(self.step)
-            rg.gather()
 
 
 class RealtimeGatherer(Gatherer):

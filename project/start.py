@@ -1,9 +1,9 @@
 import asyncio
 import sys
 
+from config.config import Configuration
 from termcolor import colored
 
-from config.config import Configuration
 from gatherer import gatherers
 
 
