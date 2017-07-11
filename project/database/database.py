@@ -14,8 +14,12 @@ class Database(object):
 
     async def open(self):
         print("Connecting to database for data enveloping.")
-        self.pool = await asyncpg.create_pool(host=self.host, port=self.port,
-                                              database=self.database, user=self.user, password=self.password)
+
+        try:
+            self.pool = await asyncpg.create_pool(host=self.host, port=self.port,
+                                                  database=self.database, user=self.user, password=self.password)
+        except Exception as e:
+            raise ConnectionError(e)
 
     async def batch_upload(self, response_list):
         async with self.pool.acquire() as connection:

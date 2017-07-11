@@ -52,13 +52,12 @@ class Gatherer(object):
     async def full(self):
         self.hours_needed = math.ceil(((time.time() - 3600) - self.since) / 3600)
 
-        if self.hours_needed == 1:
+        if self.hours_needed <= 1:
             print("Database up to date!")
             return
 
-        print(self.get_info() + "Since epoch: " + str(self.since))
-
         if self.args.v:
+            print(self.get_info() + "Since epoch: " + str(self.since))
             print("Downloading " + str(self.hours_needed) + " hours per currency.")
             print("API hours per call limit: " + str(self.api_histo_hour_limit) +
                   " - API calls needed per currency: " + str(math.ceil(self.hours_needed / self.api_histo_hour_limit)))
@@ -153,4 +152,5 @@ class Gatherer(object):
         return url_list
 
     def realtime(self):
-        print(self.get_info() + "With step: " + str(self.step) + " seconds")
+        if self.args.v:
+            print(self.get_info() + "With step: " + str(self.step) + " seconds")

@@ -62,3 +62,6 @@ if __name__ == "__main__":
     except FileNotFoundError:
         print()
         print("Configuration file not found!")
+    except ConnectionError as e:
+        print()
+        print("Connection error: " + str(e.args))
