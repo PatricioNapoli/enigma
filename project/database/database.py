@@ -1,4 +1,3 @@
-import asyncio
 import asyncpg
 
 from config.config import Configuration
@@ -16,26 +15,26 @@ class Database(object):
     async def open(self):
         print("Connecting to database for data enveloping.")
         self.pool = await asyncpg.create_pool(host=self.host, port=self.port,
-                                              database=self.database, user=self.user, password=self.password,
-                                              min_size=50, max_size=500)
+                                              database=self.database, user=self.user, password=self.password)
 
-    def upload(self, series, coin_id):
-        loop = asyncio.new_event_loop()
-        connection = loop.run_until_complete(self.pool.acquire())
-        try:
-            print(series)
-            statements = ""
-            del series['Data'][0]  # Erase first to prevent inserting an existing key, ruining the batch insert
-            for d in series['Data']:
-                v = str.format("{},{},{},{},{},{}", d["time"], coin_id, d["open"], d["close"], d["high"], d["low"])
-                statements += '''INSERT INTO ''' + self.history_table + ''' VALUES('''+v+''');'''  # Batch
-            loop.run_until_complete(connection.execute(statements)) # This only blocks this method, don't worry.
-        finally:
-            loop.run_until_complete(self.pool.release(connection))
+    async def batch_upload(self, response_list):
+        async with self.pool.acquire() as connection:
+            try:
+                statements = ""
+                for coin_id, currency_data in response_list.items():
+                    for api_call in currency_data:
+                        del api_call['Data'][0]  # Erase first to prevent inserting an existing key, ruining the batch insert
+                        for d in api_call['Data']:
+                            v = str.format("{},{},{},{},{},{}", d["time"], coin_id, d["open"], d["close"], d["high"], d["low"])
+                            statements += '''INSERT INTO ''' + self.history_table + ''' VALUES('''+v+''');'''  # Batch
+                await connection.execute(statements)
+            except asyncpg.UniqueViolationError:
+                pass
 
     async def get_last_since(self):
         async with self.pool.acquire() as connection:
             last = await connection.fetchval('''SELECT MAX(time) FROM ''' + self.history_table + ''';''')
             if last is None:
                 last = Configuration.config["epoch_default"]
-            return last
+
+        return last

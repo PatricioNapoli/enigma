@@ -2,7 +2,6 @@ import asyncio
 import concurrent.futures
 import math
 import time
-from enum import Enum
 
 import requests
 
@@ -58,64 +57,100 @@ class Gatherer(object):
             return
 
         print(self.get_info() + "Since epoch: " + str(self.since))
-        print("Downloading " + str(self.hours_needed) + " hours per currency.")
-        print("API hours per call limit: " + str(self.api_histo_hour_limit) +
-              " - API calls needed per currency: " + str(math.ceil(self.hours_needed / self.api_histo_hour_limit)))
+
+        if self.args.v:
+            print("Downloading " + str(self.hours_needed) + " hours per currency.")
+            print("API hours per call limit: " + str(self.api_histo_hour_limit) +
+                  " - API calls needed per currency: " + str(math.ceil(self.hours_needed / self.api_histo_hour_limit)))
 
         print('Downloading.. ', end='', flush=True)
 
-        await self.start_parallel_gathering()
+        if self.args.p:
+            await self.start_parallel_gathering()
+        else:
+            await self.start_gathering()
 
         print("Time taken: " + str(time.time() - self.start_time) + " seconds.")
 
+    async def start_gathering(self):
+        response_list = {}
+        url_list = await self.generate_urls()
+
+        for i, u in url_list.items():
+            response_list[i] = []
+
+        for coin_id, urls in url_list.items():
+            for url in urls:
+                self.spinner.spin()
+                response_list[coin_id].append((requests.get(url).json()))
+
+        await self.database.batch_upload(response_list)
+
     async def start_parallel_gathering(self):
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+        url_list = await self.generate_urls()
+
+        response_list = {}
+
+        total_count = 0
+        for i, u in url_list.items():
+            response_list[i] = []
+            for j in u:
+                total_count += 1
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=total_count) as executor:
             loop = asyncio.get_event_loop()
             futures = [
                 loop.run_in_executor(
                     executor,
-                    self.get_currency_data_worker,
-                    i
+                    self.get_parallel_response,
+                    coin_id,
+                    url
                 )
-                for i in range(len(self.currencies))
+                for coin_id, urls in url_list.items()
+                    for url in urls
             ]
             for response in await asyncio.gather(*futures):
+                self.spinner.spin()
+                response_list[response[0]].append(response[1])
                 pass
 
-    def get_currency_data_worker(self, i):
-        hours_left = self.hours_needed
-        last_since = self.since + self.api_histo_hour_limit * 3600
-        while hours_left > 0:
-            self.spinner.spin()
+        await self.database.batch_upload(response_list)
 
-            if hours_left > self.api_histo_hour_limit:
-                h = self.api_histo_hour_limit
-            else:
-                h = hours_left
+    def get_parallel_response(self, coin_id, url):
+        return [coin_id, requests.get(url).json()]
 
-            print(self.api_histo_hour_url + "?fsym=" + self.currencies[i]["coin"] +
-                             "&tsym=" + self.currency_conversion +
-                             "&limit=" + str(h) +
-                             "&aggregate=1&toTs=" + str(last_since))
-            r = requests.get(self.api_histo_hour_url + "?fsym=" + self.currencies[i]["coin"] +
-                             "&tsym=" + self.currency_conversion +
-                             "&limit=" + str(h) +
-                             "&aggregate=1&toTs=" + str(last_since))
+    async def generate_urls(self):
+        url_list = {}
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-                loop = asyncio.new_event_loop()  # Create event loop, we are outside main loop.
-                loop.run_in_executor(
-                    executor,
-                    self.database.upload,
-                    r.json(),
-                    self.currencies[i]["id"]
-                )
+        for i in range(len(self.currencies)):
+            hours_left = self.hours_needed
+            last_since = self.since + self.api_histo_hour_limit * 3600
 
-            #loop = asyncio.new_event_loop()
-            #loop.run_until_complete(self.database.upload(r.json(), self.currencies[i]["id"]))
+            url_list[self.currencies[i]["id"]] = []
 
-            hours_left -= self.api_histo_hour_limit
-            last_since += h * 3600
+            while hours_left > 0:
+                self.spinner.spin()
+
+                if hours_left > self.api_histo_hour_limit:
+                    h = self.api_histo_hour_limit
+                else:
+                    h = hours_left
+
+                if self.args.v:
+                    print(self.api_histo_hour_url + "?fsym=" + self.currencies[i]["coin"] +
+                          "&tsym=" + self.currency_conversion +
+                          "&limit=" + str(h) +
+                          "&aggregate=1&toTs=" + str(last_since))
+
+                url_list[self.currencies[i]["id"]].append(self.api_histo_hour_url + "?fsym=" + self.currencies[i]["coin"] +
+                                                      "&tsym=" + self.currency_conversion +
+                                                      "&limit=" + str(h) +
+                                                      "&aggregate=1&toTs=" + str(last_since))
+
+                hours_left -= self.api_histo_hour_limit
+                last_since += h * 3600
+
+        return url_list
 
     def realtime(self):
         print(self.get_info() + "With step: " + str(self.step) + " seconds")

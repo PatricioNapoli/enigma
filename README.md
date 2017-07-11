@@ -12,15 +12,17 @@ Gathers historical or real time price data from a Cryptocurrency database.
 > python start.py `option`
 
 # Usage
-> start.py [-h] [-s] [-f [F]] [-rt [RT]]
+> start.py [-h] [-s] [-f [F]] [-rt [RT]] [-p] [-v]
+
 
 Arguments:
--  -h, --help  show this help message and exit
+-  -h, --help  show help
 -  -s          [SYNC] -s to synchronize missing data.
--  -f [F]      [FULL] -f <epoch> to gather currency history from provided epoch
-              to now.
--  -rt [RT]    [REALTIME] -rt <step> to gather currency values every seconds
-              provided.
+-  -f [F]      [FULL] -f <epoch> to gather currency history from provided epoch to now.
+-  -rt [RT]    [REALTIME] -rt <step> to gather currency values every seconds provided.
+-  -p          [PARALLEL] -p to parallelize requests.
+-  -v          [VERBOSE] -v be verbose with output.
 
-- EPOCH default: 1451692800 (January 1 2016)
-- STEP default: 60
+EPOCH default: 1451692800 (January 1 2016)
+
+STEP default: 60

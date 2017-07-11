@@ -1,6 +1,6 @@
 import argparse
-
 import sys
+
 from termcolor import colored
 from gatherer.gatherer import *
 
@@ -24,6 +24,8 @@ def make_parser():
                         const=Configuration.config["epoch_default"])
     parser.add_argument("-rt", nargs='?', help="[REALTIME] -rt <step> to gather currency values every seconds provided.",
                         const=Configuration.config["step_default"])
+    parser.add_argument("-p", action='store_true', help="[PARALLEL] -p to parallelize requests.")
+    parser.add_argument("-v", action='store_true', help="[VERBOSE] -v be verbose with output.")
 
     return parser
 
@@ -33,15 +35,14 @@ async def gather(args):
     await gatherer.gather()
 
 
-@asyncio.coroutine
-def main(parser):
+async def main(parser):
     if len(sys.argv) == 1:
         p.print_help()
         return
 
     args = parser.parse_args()
 
-    yield from gather(args)
+    await gather(args)
 
     print("Happy predicting!")
 
