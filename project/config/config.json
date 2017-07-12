@@ -25,5 +25,6 @@
     "user": "genesis",
     "password": "",
     "history_table": "coins_history"
-  }
+  },
+  "unix_socket": "~/.enigma_rt"
 }

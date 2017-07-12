@@ -1,6 +1,6 @@
 import asyncpg
 
-from config.config import Configuration
+import config
 
 
 class Database(object):
@@ -10,7 +10,8 @@ class Database(object):
         self.database = database
         self.user = user
         self.password = password
-        self.history_table = Configuration.config["database"]["history_table"]
+        self.history_table = config.Configuration.config["database"]["history_table"]
+        self.epoch_default = config.Configuration.config["epoch_default"]
 
     async def open(self):
         print("Connecting to database for data enveloping.")
@@ -39,6 +40,6 @@ class Database(object):
         async with self.pool.acquire() as connection:
             last = await connection.fetchval('''SELECT MAX(time) FROM ''' + self.history_table + ''';''')
             if last is None:
-                last = Configuration.config["epoch_default"]
+                last = self.epoch_default
 
         return last

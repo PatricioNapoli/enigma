@@ -2,27 +2,29 @@ import asyncio
 import concurrent.futures
 import math
 import time
-
 import requests
 
-from config.config import Configuration
-from spinner.spinner import Spinner
-from database.database import Database
+from socket import socket, AF_UNIX, SOCK_STREAM
+
+import config
+import spinner
+import database
 
 
 class Gatherer(object):
     def __init__(self, args):
-        self.currencies = Configuration.config["currencies"]
-        self.currency_conversion = Configuration.config["currency_conversion"]
-        self.api_histo_hour_limit = Configuration.config["api_histo_hour_limit"]
-        self.api_histo_hour_url = Configuration.config["api_histo_hour_url"]
-        self.db_config = Configuration.config["database"]
-        self.database = Database(self.db_config["host"],
+        self.currencies = config.Configuration.config["currencies"]
+        self.currency_conversion = config.Configuration.config["currency_conversion"]
+        self.api_histo_hour_limit = config.Configuration.config["api_histo_hour_limit"]
+        self.api_histo_hour_url = config.Configuration.config["api_histo_hour_url"]
+        self.db_config = config.Configuration.config["database"]
+        self.database = database.Database(self.db_config["host"],
                                  self.db_config["port"],
                                  self.db_config["database"],
                                  self.db_config["user"],
                                  self.db_config["password"])
-        self.spinner = Spinner()
+        self.unix_socket = config.Configuration.config["unix_socket"]
+        self.spinner = spinner.Spinner()
         self.args = args
         self.since = 0
         self.step = 0
@@ -154,3 +156,10 @@ class Gatherer(object):
     def realtime(self):
         if self.args.v:
             print(self.get_info() + "With step: " + str(self.step) + " seconds")
+
+        s = socket(AF_UNIX, SOCK_STREAM)
+        s.connect(self.unix_socket)
+
+
+
+        s.close()

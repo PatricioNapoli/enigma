@@ -1,8 +1,12 @@
+import asyncio
 import argparse
 import sys
+import traceback
+
+import gatherer
+import config
 
 from termcolor import colored
-from gatherer.gatherer import *
 
 
 def signature():
@@ -21,9 +25,9 @@ def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", action='store_true', help="[SYNC] -s to synchronize missing data.")
     parser.add_argument("-f", nargs='?', help="[FULL] -f <epoch> to gather currency history from provided epoch to now.",
-                        const=Configuration.config["epoch_default"])
+                        const=config.Configuration.config["epoch_default"])
     parser.add_argument("-rt", nargs='?', help="[REALTIME] -rt <step> to gather currency values every seconds provided.",
-                        const=Configuration.config["step_default"])
+                        const=config.Configuration.config["step_default"])
     parser.add_argument("-p", action='store_true', help="[PARALLEL] -p to parallelize requests.")
     parser.add_argument("-v", action='store_true', help="[VERBOSE] -v be verbose with output.")
 
@@ -31,8 +35,8 @@ def make_parser():
 
 
 async def gather(args):
-    gatherer = Gatherer(args)
-    await gatherer.gather()
+    g = gatherer.Gatherer(args)
+    await g.gather()
 
 
 async def main(parser):
@@ -50,7 +54,7 @@ async def main(parser):
 if __name__ == "__main__":
     signature()
 
-    Configuration.load()
+    config.Configuration.load()
     p = make_parser()
 
     try:
@@ -59,9 +63,3 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print()
         print("Enigma aborted. Exiting!")
-    except FileNotFoundError:
-        print()
-        print("Configuration file not found!")
-    except ConnectionError as e:
-        print()
-        print("Connection error: " + str(e.args))
