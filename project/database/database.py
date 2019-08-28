@@ -1,3 +1,5 @@
+import json
+
 import asyncpg
 
 import config
@@ -28,6 +30,8 @@ class Database(object):
                 statements = ""
                 for coin_id, currency_data in response_list.items():
                     for api_call in currency_data:
+                        if len(api_call['Data']) == 0:
+                            pass
                         del api_call['Data'][0]  # Erase first to prevent inserting an existing key, ruining the batch insert
                         for d in api_call['Data']:
                             v = str.format("{},{},{},{},{},{}", d["time"], coin_id, d["open"], d["close"], d["high"], d["low"])
@@ -35,6 +39,9 @@ class Database(object):
                 await connection.execute(statements)
             except asyncpg.UniqueViolationError:
                 pass
+            except Exception as e:
+                print(json.dumps(api_call))
+
 
     async def get_last_since(self):
         async with self.pool.acquire() as connection:

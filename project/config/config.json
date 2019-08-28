@@ -1,6 +1,6 @@
 {
-  "epoch_default": 1451692800,
-  "step_default": 60,
+  "epoch_default": 1514764800,
+  "step_default": 3600,
   "currencies": [
     {
       "id": 1,
@@ -9,10 +9,6 @@
     {
       "id": 2,
       "coin": "ETH"
-    },
-    {
-      "id": 3,
-      "coin": "LTC"
     }
   ],
   "currency_conversion": "USD",
@@ -22,9 +18,10 @@
     "host": "localhost",
     "port": "5432",
     "database": "genesis",
-    "user": "genesis",
-    "password": "",
+    "user": "postgres",
+    "password": "postgres",
     "history_table": "coins_history"
   },
+  "save_to_file": true,
   "unix_socket": "~/.enigma_rt"
 }
