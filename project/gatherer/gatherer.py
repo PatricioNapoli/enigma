@@ -1,5 +1,3 @@
-import asyncio
-import concurrent.futures
 import math
 import time
 import requests
@@ -9,6 +7,7 @@ from socket import socket, AF_UNIX, SOCK_STREAM
 import config
 import spinner
 import database
+import file
 
 
 class Gatherer(object):
@@ -18,11 +17,15 @@ class Gatherer(object):
         self.api_histo_hour_limit = config.Configuration.config["api_histo_hour_limit"]
         self.api_histo_hour_url = config.Configuration.config["api_histo_hour_url"]
         self.db_config = config.Configuration.config["database"]
+
+        self.save_to_file = config.Configuration.config["save_to_file"]
+
         self.database = database.Database(self.db_config["host"],
-                                 self.db_config["port"],
-                                 self.db_config["database"],
-                                 self.db_config["user"],
-                                 self.db_config["password"])
+                                          self.db_config["port"],
+                                          self.db_config["database"],
+                                          self.db_config["user"],
+                                          self.db_config["password"])
+
         self.unix_socket = config.Configuration.config["unix_socket"]
         self.spinner = spinner.Spinner()
         self.args = args
@@ -36,7 +39,9 @@ class Gatherer(object):
                " - Physical currency: " + self.currency_conversion + " - "
 
     async def gather(self):
-        await self.database.open()
+
+        if not self.save_to_file:
+            await self.database.open()
 
         if self.args.s:
             print("Gathering last database epoch for synchronizing...")
@@ -66,10 +71,7 @@ class Gatherer(object):
 
         print('Downloading.. ', end='', flush=True)
 
-        if self.args.p:
-            await self.start_parallel_gathering()
-        else:
-            await self.start_gathering()
+        await self.start_gathering()
 
         print("Time taken: " + str(time.time() - self.start_time) + " seconds.")
 
@@ -85,40 +87,10 @@ class Gatherer(object):
                 self.spinner.spin()
                 response_list[coin_id].append((requests.get(url).json()))
 
-        await self.database.batch_upload(response_list)
-
-    async def start_parallel_gathering(self):
-        url_list = await self.generate_urls()
-
-        response_list = {}
-
-        total_count = 0
-        for i, u in url_list.items():
-            response_list[i] = []
-            for j in u:
-                total_count += 1
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=total_count) as executor:
-            loop = asyncio.get_event_loop()
-            futures = [
-                loop.run_in_executor(
-                    executor,
-                    self.get_parallel_response,
-                    coin_id,
-                    url
-                )
-                for coin_id, urls in url_list.items()
-                    for url in urls
-            ]
-            for response in await asyncio.gather(*futures):
-                self.spinner.spin()
-                response_list[response[0]].append(response[1])
-                pass
-
-        await self.database.batch_upload(response_list)
-
-    def get_parallel_response(self, coin_id, url):
-        return [coin_id, requests.get(url).json()]
+        if self.save_to_file:
+            file.save_json(response_list)
+        else:
+            await self.database.batch_upload(response_list)
 
     async def generate_urls(self):
         url_list = {}
@@ -159,7 +131,5 @@ class Gatherer(object):
 
         s = socket(AF_UNIX, SOCK_STREAM)
         s.connect(self.unix_socket)
-
-
 
         s.close()

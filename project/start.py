@@ -28,7 +28,6 @@ def make_parser():
                         const=config.Configuration.config["epoch_default"])
     parser.add_argument("-rt", nargs='?', help="[REALTIME] -rt <step> to gather currency values every seconds provided.",
                         const=config.Configuration.config["step_default"])
-    parser.add_argument("-p", action='store_true', help="[PARALLEL] -p to parallelize requests.")
     parser.add_argument("-v", action='store_true', help="[VERBOSE] -v be verbose with output.")
 
     return parser
