@@ -1,8 +1,9 @@
 FROM centos:7
 
-RUN yum -y install java-1.8.0-openjdk.x86_64
-RUN yum -y install wget
-RUN yum -y install which
+RUN yum update -y \
+    && yum install -y https://centos7.iuscommunity.org/ius-release.rpm \
+    && yum install -y java-1.8.0-openjdk.x86_64 wget python36u python36u-libs python36u-devel python36u-pip \
+    && yum install -y which gcc gcc-c++
 
 USER root
 ENV JAVA_HOME /usr/lib/jvm/jre-1.8.0
@@ -23,6 +24,10 @@ RUN chown -R $HADOOP_USER:hadoop /usr/local/hadoop-2.7.7 && chmod -R 775 $HADOOP
 ENV HADOOP_USER_NAME $HADOOP_USER
 ENV PATH="${HADOOP_PREFIX}/bin:${PATH}"
 
+RUN ln -s /usr/bin/pip3.6 /bin/pip
+RUN rm /usr/bin/python
+RUN ln -s /usr/bin/python3.6 /usr/bin/python
 
+RUN pip install -r requirements.txt
 
-ENTRYPOINT ["/bin/bash"]
+ENTRYPOINT ["./entrypoint.sh"]

@@ -1,6 +1,3 @@
 .idea/
-project/gatherer/__pycache__/
-project/__pycache__/
-project/config/__pycache__/
-project/database/__pycache__/
-project/spinner/__pycache__/
+
+**/__pycache__

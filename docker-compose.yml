@@ -1,0 +1,16 @@
+version: "3.7"
+
+services:
+    gatherer:
+        build: gatherer/
+        restart: unless-stopped
+    hadoop:
+        image: harisekhon/hadoop:latest
+        restart: unless-stopped
+        ports:
+          - "8020"
+          - "8042"
+          - "8088"
+          - "19888"
+          - "50070"
+          - "50075"
