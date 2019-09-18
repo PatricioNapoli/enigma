@@ -17,10 +17,13 @@ def save_json(response_list):
                 response = {"time": d["time"], "value": d["high"]}
                 responses.append(response)
 
-        fs = hdfs.hdfs(host="hadoop", port=50070, user="root")
+        fs = hdfs.hdfs(host="hadoop", port=8020, user="root")
 
-        with fs.open(f"{find_coin(coin_id)}_{time.time()}.json", 'w') as f:
-            f.write(json.dumps(responses))
+        file_name = f"{find_coin(coin_id)}_{time.time()}.json"
+        print(f"Saving {file_name} to HDFS.")
+
+        with fs.open_file(file_name, 'w') as f:
+            f.write(json.dumps(responses).encode('utf-8'))
 
 
 def find_coin(coin_id):
