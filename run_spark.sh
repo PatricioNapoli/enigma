@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker-compose -p enigma-spark -f docker-compose-spark.yml up -d --build
+docker-compose -p enigma-spark -f spark/docker-compose.yml up -d --build

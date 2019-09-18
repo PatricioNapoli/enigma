@@ -16,14 +16,4 @@ if __name__ == "__main__":
     sc = SparkContext(conf=conf)
     spark = SparkSession(sc)
 
-    for path in fs.list_directory("/user/root/"):
-        path_name = path["path"]
-
-        df = spark.read.json(path_name)
-        
-        file_name = path_name.split("/")[-1]
-
-        hdfs_path = f"hdfs://hadoop:8020/user/root/parquet/{file_name}.parquet"
-
-        print(f"Schematizing {path_name} to {hdfs_path}")
-        df.write.format('parquet').save(hdfs_path)
+    # TODO
