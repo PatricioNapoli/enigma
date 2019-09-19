@@ -1,27 +1,17 @@
 # Enigma
 
-Gathers historical or real time price data from a Cryptocurrency database.
+Gathers historical price data from a Cryptocurrency database, cleans it and loads it into HDFS. Afterwards, it is schematized into a parquet file using Apache Spark. Then it is loaded into a Cassandra database. Finally, it is analyzed and generates charts from analysis.
 
 # Install
-> pip install -r requirements.txt
+Install docker and docker-compose in your machine.
 
-# Run (Python 3.5+ required)
-- Execute gatherer/database/dbmodel.sql file in your PostgreSQL server.
-- Configure gatherer/config/config.json file
-- Execute the following command
-> python start.py `option`
+# Running
+Run ./setup.sh
+Run hadoop, cassandra and spark .sh scripts.
 
-# Usage
-> start.py [-h] [-s] [-f [F]] [-rt [RT]] [-p] [-v]
-
-
-Arguments:
--  -h, --help  show help
--  -s          [SYNC] -s to synchronize missing data.
--  -f [F]      [FULL] -f <epoch> to gather currency history from provided epoch to now.
--  -rt [RT]    [REALTIME] -rt <step> to gather currency values every seconds provided.
--  -v          [VERBOSE] -v be verbose with output.
-
-EPOCH default: 1451692800 (January 1 2016)
-
-STEP default: 60
+# Batch Process Steps
+1. Run gatherer
+2. Run schema
+3. Run loader
+4. Run analytics
+5. Run visualizer

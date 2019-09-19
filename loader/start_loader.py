@@ -12,18 +12,20 @@ if __name__ == "__main__":
 
     fs = hdfs.hdfs(host="hadoop", port=8020, user="root")
 
-    conf = SparkConf().setMaster('spark://spark-master:7077')
+    conf = SparkConf().set("spark.cassandra.connection.host", "cassandra").setMaster('spark://spark-master:7077')
     sc = SparkContext(conf=conf)
     spark = SparkSession(sc)
 
-    cass_options = {"spark.cassandra.connection.host": 'cassandra', "table": "crypto", "keyspace": "enigma"}
-
     for path in fs.list_directory("/user/root/parquet"):
+        path_name = path["path"]
+
         df = spark.read.parquet(path_name)
 
-        df.write.format("org.apache.spark.sql.cassandra")
-                .mode('append')
-                .options(**cass_options)
-                .save()
+        file_name = path_name.split("/")[-1]
 
-    # TODO
+        # First 3 characters is coin
+        table = file_name[:3]
+
+        df.write.format("org.apache.spark.sql.cassandra").mode('append').options(table=table.lower(), keyspace="enigma").save()
+
+    print("Finished loading to cassandra.")        

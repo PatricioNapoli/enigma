@@ -1,3 +1,3 @@
 #!/bin/sh
 
-python start.py
+spark-submit start_schema.py

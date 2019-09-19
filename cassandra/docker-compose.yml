@@ -1,0 +1,16 @@
+version: '3.3'
+
+services:
+  cassandra:
+    image: cassandra
+    volumes:
+      - data:/var/lib/cassandra
+    networks:
+      - enigma
+
+volumes:
+  data:
+
+networks:
+  enigma:
+    external: true
