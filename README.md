@@ -14,4 +14,4 @@ Run hadoop, cassandra and spark .sh scripts.
 2. Run schema
 3. Run loader
 4. Run analytics
-5. Run visualizer
+5. Run report
