@@ -18,8 +18,9 @@ if __name__ == "__main__":
 
     current_processed = []
 
-    for path in fs.list_directory("/user/root/parquet"):
-        current_processed.append(path["path"].split("/")[-1].replace(".parquet", ""))
+    if fs.exists("/user/root/parquet"):
+        for path in fs.list_directory("/user/root/parquet"):
+            current_processed.append(path["path"].split("/")[-1].replace(".parquet", ""))
 
     for path in fs.list_directory("/user/root/"):
         path_name = path["path"]

@@ -7,7 +7,8 @@ Install docker and docker-compose in your machine.
 
 # Running
 Run ./setup.sh
-Run hadoop, cassandra and spark .sh scripts.
+Run ./run_services.sh
+Execute cassandra.sql in cqlsh shell from Cassandra's container.
 
 # Batch Process Steps
 1. Run gatherer
